@@ -27,7 +27,7 @@ def dimReduce(train_mat, number_of_dims):
 
     #finding covariance matrix
     m = np.shape(train_mat)[0]
-    covariance = np.dot(train_mat.T, train_mat) * 1/m # m x m
+    covariance = np.dot(train_mat.T, train_mat) * 1/m # n x n
 
     #applying SVD on the covariance mat
     U, S, V = svd(covariance) # n x n
@@ -57,35 +57,46 @@ def main():
     organizeImages()
     n = 30 * 30 #dimensions of the pngs
     os.chdir("/Users/64000340/Desktop/Train") #directory for folder for processing images
-    X = np.ones((1,n)) #dummy initlization of the inputs matrix
-    Y = np.zeros((1,10)) #dummy initilzation of answers matrix
-    #getting each file in the directory
+    X = np.ones((1,n)) #dummy creation of the inputs matrix
+    Y = np.zeros((1,10)) #dummy creation of answers matrix
 
+    #getting each file in the directory
     counter = 0
     while(counter < 600):
-        r = random.randint(0,9)
-        os.chdir("/Users/64000340/Desktop/Train/" + str(r))
+        r = random.randint(0,9) # randomly ordering the training data
+
+        os.chdir("/Users/64000340/Desktop/Train/" + str(r)) # accessing the training folder for digit
         if(len(os.listdir()) < 2):
             continue
-
+        #manipulating the Y matrix in the same order as X
+        answers = [0,0,0,0,0,0,0,0,0,0]  #the len of the list represents the total classes in classification
+        answers[r] = 1
+        #appending the answers to the Y array
+        answers = np.array(answers)
+        Y = np.vstack((Y, answers))
+        #getting & reshaping the first digit image read as np array
         sequence = cv2.imread(os.listdir()[1],0)
-        print(np.shape(sequence))
         sequence = np.reshape(sequence, (1,900))
+        #adding it to our X array
         X = np.vstack((X, sequence))
         os.remove(os.listdir()[1])
 
         counter+= 1
-        print(counter)
 
 
 
 
 
-    training = X[1:, :] #getting rid of the ones
 
-    training = featureScale(training, 255, 127.5) # m x n
+    X = X[1:, :] #getting rid of the ones
+    Y = Y[1: , :] # m x 10
+    X = featureScale(X, 255, 127.5) # m x n
 
-    print(np.shape(training))
+    #adding the bias inputs to the X array
+    biasInputs = np.ones((np.shape(X)[0],1))
+    X = np.hstack((biasInputs, X))
+
+    print(X[:, 0])
 
 
 
