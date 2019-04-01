@@ -31,9 +31,8 @@ def organizeImages():
 
 
 #sending training data from a folder to the train folder: specific to user
-def sendImage():
-     baseDirectory = "/Users/64000340/Desktop/Extra/"
-     targetDirectory = "/Users/64000340/Desktop/Numbers/"
+def sendImage(baseDirectory, targetDirectory):
+
      counter = 0
      for i in range(0,10):
          os.chdir(baseDirectory + str(i))
