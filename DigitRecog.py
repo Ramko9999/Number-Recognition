@@ -7,6 +7,8 @@ from time import time
 import random
 from Processer import organizeImages
 from math import e, log
+from scipy import optimize
+
 
 
 
@@ -40,44 +42,37 @@ def dimReduce(train_mat, number_of_dims):
 
     return reducedInputs
 
-#returns gradients based on approx calculations through finding secant lines
-def gradientChecking(X, theta1, theta2, Y):
-    epsilon = pow(10, -4) #this essentially is delta x
-    approxGrad_1 = np.zeros(np.shape(theta1)).tolist()
-    approxGrad_2 = np.zeros(np.shape(theta2)).tolist()
-    #finds gradients for the first 10 rows and 10 cols of theta1
-    for i in range(0,10):
-        for j in range(0,10):
-            theta1_plus = theta1.tolist()
-            theta1_minus = theta1.tolist()
-            #changing theta by a little bit to find how much the cost will vary
-            theta1_plus[i][j] += epsilon
-            theta1_minus[i][j] -= epsilon
-            #finding the secant line, the line below is basically (y2 - y1)/(x2 - x1)
-            approxGrad_1[i][j] = costFunction(X, theta1_plus, theta2, Y) - costFunction(X, theta1_minus, theta2, Y)
-            approxGrad_1[i][j] /= 2 * epsilon
+#returns a gradient row vector based on approx calculations through finding secant lines
+def gradientChecking(rolledTheta,X,  Y, hiddenSize):
+    dx = pow(10, -4) #this essentially is delta x
+    rolledGrad = np.zeros(np.shape(rolledTheta))
+    #finds gradients for the first however many rows
+    for i in range(0, 25):
+        #adding dx
+        theta_plus = rolledTheta.tolist()
+        theta_plus[i][0] += dx
+        theta_plus = np.array(theta_plus)
+        #subtracting dx
+        theta_minus = rolledTheta.tolist()
+        theta_minus[i][0] -= dx
+        theta_minus = np.array(theta_minus)
+        #appending the secant line slope
+        rolledGrad[i] = costFunction(theta_plus, X, Y, hiddenSize) - costFunction(theta_minus, X, Y, hiddenSize)
+        rolledGrad[i] /= 2 * dx
 
-    approxGrad_1 = np.array(approxGrad_1)
-    #finds gradients for first 10 ros & columns in theta2
-    for i in range(0, 10):
-        for j in range(0, 10):
-            theta2_plus = theta2.tolist()
-            theta2_minus = theta2.tolist()
-            #changing theta a little by adding & minusing epsilon
-            theta2_plus[i][j] += epsilon
-            theta2_minus[i][j] -= epsilon
-            #finding the secant line
-            approxGrad_2[i][j] = costFunction(X, theta1, theta2_plus, Y) - costFunction(X, theta1, theta2_minus, Y)
-            approxGrad_2[i][j] /= 2 * epsilon
-
-    approxGrad_2 = np.array(approxGrad_2)
-
-    return approxGrad_1, approxGrad_2
+    return rolledGrad
 
 
 #used for quickly testing certain things
 def test():
-    stupid = "me"
+   z = np.array([[0,0,0],[0,0,0]])
+   c = np.array([[0,-1, -2], [0,1,2]])
+   counter = 0
+   for i in range(np.shape(c)[0]):
+       if(maxIndex(c[i].tolist())) == maxIndex(z[i].tolist()):
+           counter+= 1
+   print(counter / np.shape(c)[0])
+
 
 
 #used to find the number itself for predictions
@@ -153,17 +148,23 @@ def feedForward(X, theta1, theta2, Y):
     return a3
 
 #costFunction for the neural network
-def costFunction(X, theta1, theta2, Y, Reg = None):
+def costFunction(rolledTheta, *args):
+    X,Y,k = args
+    #getting the theta
+    theta1, theta2 = unroll(rolledTheta, np.shape(X)[1], k, np.shape(Y)[1])
+
     a3 = feedForward(X, theta1, theta2, Y)# predictions from the feedforward algo
     #finding loss and error through crossEntropy
     loss = crossEntropy(a3, Y)
     m = np.shape(X)[0] #total number of examples
-    if(Reg == None):
-        J = np.sum(np.sum(loss))/m
+    J = np.sum(np.sum(loss))/m
     return J
 
 #gradients for the neural network
-def findGradients(X, theta1, theta2, Y, Reg = None):
+def findGradients(rolledTheta, *args):
+    X,Y,k = args
+    #unrolling thetas
+    theta1, theta2, = unroll(rolledTheta, np.shape(X)[1], k, np.shape(Y)[1])
     # calculating the sums
     z2 = np.dot(X, theta1)  # 1187 * 30
     a2 = sigmoid(z2)  # 1187 * 30
@@ -180,13 +181,12 @@ def findGradients(X, theta1, theta2, Y, Reg = None):
     deltaZ2 = deltaSigmoid(biasZ2) #1187 x 31
     #calculating prop error for the theta1
     delta2 = np.multiply(np.dot(delta3, theta2.T), deltaZ2) #1187 * 31
-
     #computing gradients from the deltas
     m = np.shape(X)[0] #total examples of training data
     grad_1 = np.matmul(X.T, delta2)/m #901 x 31
     grad_2 = np.matmul(x2.T, delta3)/m # 31 X 10
 
-    return grad_1[:, 1:], grad_2
+    return roll(grad_1[:, 1:], grad_2).flatten()
 
 #method of calculating cost function
 def crossEntropy(H, Y):
@@ -194,7 +194,7 @@ def crossEntropy(H, Y):
 
 #used as a activation function
 def sigmoid(X):
-    return 1 /( 1 + np.power(e, -1 * X))
+    return 1 / (1 + np.power(e, -1 * X))
 
 #derivative of sigmoid function
 def deltaSigmoid(X):
@@ -212,6 +212,27 @@ def sizeOfAllExamples(directory, subDirectories):
     return examples
 
 
+#returns the flattend version of the 2d matrix
+def roll(theta1, theta2):
+    n = np.shape(theta1)[0]
+    k = np.shape(theta1)[1]
+    o = np.shape(theta2)[1]
+    #rolling the matrices into a row vector
+    rolledVect = np.vstack((np.reshape(theta1, newshape=(n*k, 1)),np.reshape(theta2, newshape=((k+1) * o, 1))))
+    return rolledVect
+
+#returns 2 matrices based on the unrolled vector
+def unroll(v, n, k, o):
+
+    index = n*k
+    # unrolling the vector
+    m1 = v[0: index]
+    m1 = np.reshape(m1, newshape=(n, k))
+    m2 = v[index:]
+    m2 = np.reshape(m2, newshape=((k + 1), o))
+
+    return m1, m2
+
 #As of 3/26/2019: I am using Open CV to process images
 def main():
 
@@ -227,54 +248,53 @@ def main():
     m = np.shape(X)[0] #number of training examples
     n = np.shape(X)[1] #number of features
     k = 30 #number of neurons in hidden layer
-    theta1 = np.random.randn(n, k)  * np.sqrt(1/(k)) #901 x 30
-    theta2 = np.random.randn(k + 1, numberOfClasses) * np.sqrt(1/(numberOfClasses))  #31 x 10
-    grad_1, grad_2 = findGradients(X, theta1, theta2, Y)
-    approx_1, approx_2 = gradientChecking(X, theta1, theta2, Y)
-    #findGradients seems to be working properly!
-    print("grad_2")
-    print(grad_2[0:9, 0:9])
-    print("approx_2")
-    print(approx_2[0:9,0:9])
+    theta1 = np.random.randn(n, k)  * np.sqrt(1/(k)) #901 x k
+    theta2 = np.random.randn(k + 1, numberOfClasses) * np.sqrt(1/(numberOfClasses))  #k+1 x 10
+    #checking gradients
+    rolledTheta = roll(theta1, theta2)
+    bestTheta = trainFMINCG(rolledTheta, X, Y, k)
+    b1, b2 = unroll(bestTheta, np.shape(X)[1], k, np.shape(Y)[1])
+    a3 = feedForward(X, b1, b2, Y)
+    counter = 0
+    for i in range(np.shape(a3)[0]):
+        print("Predicted", maxIndex(a3[i].tolist()), "Actual", maxIndex(Y[i].tolist()))
+        if(maxIndex(a3[i].tolist()) == maxIndex(Y[i].tolist())):
+            counter+= 1
+    print("Accuracy :", (counter/np.shape(X)[0]) * 100)
 
-#used to train the network
-def train(X, theta1, theta2, Y, iterations, alpha, Reg = None):
+
+
+#used to train the network by using backpropogation
+def trainManually(X, theta1, theta2, Y, iterations, alpha, Reg = None):
     counter = 0
     #used for plotting J(Train)
     costs =[]
     epochs =[]
-    numOfCorrect =[]
     #total number of cycles the network will go through
     while counter < iterations:
-        predictions = feedForward(X, theta1, theta2, Y) #getting predictions from network
-        counter = 0
         #checking how many its getting right
-        for e in range(0, np.shape(predictions)[0]):
-            if(maxIndex(predictions[e, :]) == maxIndex(Y[e, :])):
-                counter+= 1
-        percentage = counter/np.shape(X)[0]
-        print(percentage)
-
         J = costFunction(X, theta1, theta2, Y)
         #appending the costs, counter, and number correct to our data lists
         costs.append(J)
         epochs.append(counter)
-        numOfCorrect.append(percentage)
         #getting the gradients
         grad_1, grad_2 = findGradients(X, theta1, theta2, Y)
-        theta1 = theta1 - alpha * grad_1
-        theta2 = theta2 - alpha * grad_2
+        theta1 = theta1 - alpha *grad_1
+        theta2 = theta2 - alpha *grad_2
         counter+= 1
 
     #graphing the costs vs epochs curve
     plt.plot(epochs, costs)
     plt.show()
 
+#used to train the network with the fmincg
 
-
+def trainFMINCG(rolledTheta, X , Y, k,  Reg = None):
+    res = optimize.fmin_cg(f=costFunction, x0=rolledTheta.flatten(), fprime=findGradients, args=(X, Y, k), maxiter=500)
+    return res
 
 
 
 start = time()
 main()
-print(time() - start)
+print("Time elapsed : ", time() - start)

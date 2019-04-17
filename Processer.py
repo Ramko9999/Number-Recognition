@@ -1,6 +1,6 @@
 import os
 import cv2
-from time import time
+
 
 
 
@@ -42,3 +42,14 @@ def sendImage(baseDirectory, targetDirectory):
              cv2.imwrite(str(i) + str(counter) + ".png", img)
              os.chdir(baseDirectory + str(i))
              counter+= 1
+
+#used for deleting files in a directory
+def deleteFiles(baseDirectory, subDirecs):
+    os.chdir(baseDirectory)
+    for s in subDirecs:
+        targetDirec = baseDirectory + s
+        os.chdir(targetDirec)
+        for f in os.listdir():
+            os.remove(f)
+
+
