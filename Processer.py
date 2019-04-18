@@ -1,17 +1,14 @@
 import os
 import cv2
+import random
 
 
 
 
 #the main purpose of this program is to reorganize the training data and put it back in the test folder
-def organizeImages():
+def organizeImages(baseDirectory, targetDirectory):
 
-    baseDirectory = "/Users/64000340/Desktop/Numbers/"
-    targetDirectory = "/Users/64000340/Desktop/Train/"
-
-
-    for i in range(0, 10):
+    for i in range(0, 10): #assumes that the sub directory folders names are from 0-9 in the base & targetDirec
         os.chdir(baseDirectory+ str(i)) #test directory
         print(i)
         counter = 0
@@ -39,7 +36,8 @@ def sendImage(baseDirectory, targetDirectory):
          for file in os.listdir():
              img = cv2.imread(file, 1)
              os.chdir(targetDirectory + str(i))
-             cv2.imwrite(str(i) + str(counter) + ".png", img)
+             r = random.randint(0, 100000000)
+             cv2.imwrite(str(i) + str(counter) + str(r) + ".png", img)
              os.chdir(baseDirectory + str(i))
              counter+= 1
 
@@ -52,4 +50,6 @@ def deleteFiles(baseDirectory, subDirecs):
         for f in os.listdir():
             os.remove(f)
 
-
+data = ["0021_CH4M", "0018_CHXX", "0016_CH3F","0023_IT3M", "0022_AT3M", "0015_CH2M"]
+for datum in data:
+    sendImage("/Users/64000340/Desktop/" + datum +"/", "/Users/64000340/Desktop/Numbers/")

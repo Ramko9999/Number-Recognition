@@ -235,16 +235,16 @@ def unroll(v, n, k, o):
 
 #As of 3/26/2019: I am using Open CV to process images
 def main():
-
-    organizeImages()
+    baseDirectory = "/Users/64000340/Desktop/Numbers/" #directory of raw data
+    targetDirectory = "/Users/64000340/Desktop/Train/" #directory of grayscaled data
+    organizeImages(baseDirectory, targetDirectory)
     n = 30 * 30 #dimensions of the pngs
     numberOfClasses = 10 # number of distinct classes we need to wacth out for
     learningRate = 0.01 #scale at which gradients will be applied
-    sourceDirectory = "/Users/64000340/Desktop/Train/" #directory where all our data is
     subDirectory = [0,1,2,3,4,5,6,7,8,9] #names of the folders in the directory
     os.chdir("/Users/64000340/Desktop/Train") #directory for folder for processing images
 
-    X, Y = processImages(n,numberOfClasses,sourceDirectory, subDirectory) #gives us our inputs & answers matricies
+    X, Y = processImages(n,numberOfClasses,targetDirectory, subDirectory) #gives us our inputs & answers matricies
     m = np.shape(X)[0] #number of training examples
     n = np.shape(X)[1] #number of features
     k = 30 #number of neurons in hidden layer
@@ -261,9 +261,50 @@ def main():
         if(maxIndex(a3[i].tolist()) == maxIndex(Y[i].tolist())):
             counter+= 1
     print("Accuracy :", (counter/np.shape(X)[0]) * 100)
+    os.chdir("/Users/64000340/PycharmProjects/MachineLearning")
+    with open("NNWeights.txt", "w") as f:
+        np.savetxt(f, bestTheta)
+    predict(bestTheta)
+
+#used for cross validation predictions
+def predict(bestTheta):
+    baseDirectory = "/Users/64000340/Desktop/Numbers2/"  # directory of raw data
+    targetDirectory = "/Users/64000340/Desktop/CrossValidation/"  # directory of grayscaled data
+    organizeImages(baseDirectory, targetDirectory)
+    n = 30 * 30  # dimensions of the pngs
+    numberOfClasses = 10  # number of distinct classes we need to wacth out for
+    learningRate = 0.01  # scale at which gradients will be applied
+    subDirectory = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # names of the folders in the directory
+    os.chdir("/Users/64000340/Desktop/CrossValidation")  # directory for folder for processing images
+
+    X_CV, Y_CV = processImages(n, numberOfClasses, targetDirectory, subDirectory)  # gives us our inputs & answers matricies
+    print("Processed Images")
+    m = np.shape(X_CV)[0]  # number of training examples
+    n = np.shape(X_CV)[1]  # number of features
+    k = 30  # number of neurons in hidden layer
+    os.chdir("/Users/64000340/PycharmProjects/MachineLearning")
+    with open("NNWeights.txt", "r") as f:
+        weights = []
+        for i in range(0, (n*k) + (k+1) * numberOfClasses):
+            weights.append((f.readline(i).strip()))
+    weights = bestTheta
+    theta1, theta2 = unroll(np.array(weights), np.shape(X_CV)[1], k, np.shape(Y_CV)[1])
+
+    predictions = feedForward(X_CV, theta1, theta2, Y_CV)
+    counter = 0
+    for i in range(np.shape(predictions)[0]):
+        print("Predicted", maxIndex(predictions[i].tolist()), "Actual", maxIndex(Y_CV[i].tolist()))
+        if(maxIndex(predictions[i].tolist()) == maxIndex(Y_CV[i].tolist())):
+            counter+= 1
+    print("Accuracy:", counter/np.shape(X_CV)[0] * 100)
 
 
 
+"""
+Training Manually is not robust enough for this network as it 
+seems to keep falling into a local minimum. Therefore, that is 
+why I used FMINCG.
+"""
 #used to train the network by using backpropogation
 def trainManually(X, theta1, theta2, Y, iterations, alpha, Reg = None):
     counter = 0
@@ -290,7 +331,7 @@ def trainManually(X, theta1, theta2, Y, iterations, alpha, Reg = None):
 #used to train the network with the fmincg
 
 def trainFMINCG(rolledTheta, X , Y, k,  Reg = None):
-    res = optimize.fmin_cg(f=costFunction, x0=rolledTheta.flatten(), fprime=findGradients, args=(X, Y, k), maxiter=500)
+    res = optimize.fmin_cg(f=costFunction, x0=rolledTheta.flatten(), fprime=findGradients, args=(X, Y, k))
     return res
 
 
