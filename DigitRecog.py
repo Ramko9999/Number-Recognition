@@ -263,7 +263,7 @@ def main():
     print("Processed Training Data")
     m = np.shape(X)[0] #number of training examples
     n = np.shape(X)[1] #number of features
-    k = 30 #number of neurons in hidden layer
+    k = 100 #number of neurons in hidden layer
     theta1 = np.random.randn(n, k)  * np.sqrt(1/(k)) #901 x k
     theta2 = np.random.randn(k + 1, numberOfClasses) * np.sqrt(1/(numberOfClasses))  #k+1 x 10
     #rolling theta
@@ -298,7 +298,7 @@ def predict(bestTheta):
     print("Processed Images")
     m = np.shape(X_CV)[0]  # number of training examples
     n = np.shape(X_CV)[1]  # number of features
-    k = 30  # number of neurons in hidden layer
+    k = 100  # number of neurons in hidden layer
     os.chdir("/Users/64000340/PycharmProjects/MachineLearning")
     """
      with open("NNWeights.txt", "r") as f:
@@ -354,7 +354,7 @@ def trainManually(X, theta1, theta2, Y, iterations, alpha, Reg = None):
 #used to train the network with the fmincg
 
 def trainFMINCG(rolledTheta, X , Y, k,  Reg = None):
-    res = optimize.fmin_cg(f=costFunction, x0=rolledTheta.flatten(), fprime=findGradients, args=(X, Y, k, Reg), maxiter=3200)
+    res = optimize.fmin_cg(f=costFunction, x0=rolledTheta.flatten(), fprime=findGradients, args=(X, Y, k, Reg), maxiter=2700)
     return res
 
 
