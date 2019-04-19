@@ -1,6 +1,7 @@
 import os
 import cv2
 import random
+from time import time
 
 
 
@@ -49,7 +50,46 @@ def deleteFiles(baseDirectory, subDirecs):
         os.chdir(targetDirec)
         for f in os.listdir():
             os.remove(f)
+'''
+! THE CODE BELOW IS USED TO ORGANIZE ALL 15600 images I have into training & cv data, DON'T RANDOMLY RUN THIS
+IT MIGHT MESS THINGS UP!
+start = time()
+fileCounter = 0
+nDirec_2 = "/Users/64000340/Desktop/Numbers2/"
+nDirec_1 = "/Users/64000340/Desktop/Numbers/"
+base = "/Users/64000340/Desktop/All Data/"
+digit_names = [str(x) for x in range(10)]
+file_names = [str(x) for x in range(1, 27)]
+test_nums = [156] * 10
 
-data = ["0021_CH4M", "0018_CHXX", "0016_CH3F","0023_IT3M", "0022_AT3M", "0015_CH2M"]
-for datum in data:
-    sendImage("/Users/64000340/Desktop/" + datum +"/", "/Users/64000340/Desktop/Numbers/")
+for f in file_names:
+    for d in digit_names:
+        os.chdir("/Users/64000340/Desktop/All Data/" + f + "/" + d)
+        for digit in os.listdir("/Users/64000340/Desktop/All Data/" + f + "/" + d):
+            img = cv2.imread(digit, 0)
+            img = cv2.resize(img, (30, 30))
+            x = random.randint(0, 9)
+            if (x == 0):
+                if (test_nums[int(d)] == 0):
+                    os.chdir(nDirec_1 + d)
+                    cv2.imwrite(str(random.randint(0, 9999999)) + ".png", img)
+                else:
+                    os.chdir(nDirec_2 + d)
+                    cv2.imwrite(str(random.randint(0, 9999999)) + ".png", img)
+                    test_nums[int(d)] -= 1
+            else:
+                os.chdir(nDirec_1 + d)
+                cv2.imwrite(str(random.randint(0, 9999999)) + ".png", img)
+            os.chdir("/Users/64000340/Desktop/All Data/" + f + "/" + d)
+
+
+
+
+print(time()-start, "seconds")
+
+'''
+
+
+
+
+

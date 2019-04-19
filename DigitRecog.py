@@ -5,7 +5,7 @@ import cv2
 import matplotlib.pyplot as plt
 from time import time
 import random
-from Processer import organizeImages
+from Processer import organizeImages, deleteFiles
 from math import e, log
 from scipy import optimize
 
@@ -65,13 +65,8 @@ def gradientChecking(rolledTheta,X,  Y, hiddenSize):
 
 #used for quickly testing certain things
 def test():
-   z = np.array([[0,0,0],[0,0,0]])
-   c = np.array([[0,-1, -2], [0,1,2]])
-   counter = 0
-   for i in range(np.shape(c)[0]):
-       if(maxIndex(c[i].tolist())) == maxIndex(z[i].tolist()):
-           counter+= 1
-   print(counter / np.shape(c)[0])
+  z = np.zeros((4,5))
+  print(z)
 
 
 
@@ -121,7 +116,7 @@ def processImages(n, k,  directory, subDirecs):
         os.remove(os.listdir()[1])
 
         counter += 1
-
+    deleteFiles("/Users/64000340/Desktop/Train/", [str(x) for x in range(0, 10)]) # making sure everything is gone
     X = X[1:, :]  # getting rid of the ones
     Y = Y[1:, :]  # m x 10
     X = featureScale(X, 255, 127.5)  # m x n
@@ -149,7 +144,8 @@ def feedForward(X, theta1, theta2, Y):
 
 #costFunction for the neural network
 def costFunction(rolledTheta, *args):
-    X,Y,k = args
+    J = 0
+    X,Y,k, Reg = args
     #getting the theta
     theta1, theta2 = unroll(rolledTheta, np.shape(X)[1], k, np.shape(Y)[1])
 
@@ -157,12 +153,23 @@ def costFunction(rolledTheta, *args):
     #finding loss and error through crossEntropy
     loss = crossEntropy(a3, Y)
     m = np.shape(X)[0] #total number of examples
-    J = np.sum(np.sum(loss))/m
+    #getting the regularized cost function
+    if(Reg != None):
+        regTheta1 = theta1[1:, :]
+        regTheta1 = np.multiply(regTheta1, regTheta1)
+        sum_1 = np.sum(np.sum(regTheta1))
+        regTheta2 = theta2[1:, :]
+        regTheta2 = np.multiply(regTheta2, regTheta2)
+        sum_2 = np.sum(np.sum(regTheta2))
+        totalSum = Reg * 1/(2 * m) * (sum_1 + sum_2)
+        J += totalSum
+
+    J += np.sum(np.sum(loss))/m #adding loss function
     return J
 
 #gradients for the neural network
 def findGradients(rolledTheta, *args):
-    X,Y,k = args
+    X,Y,k,Reg = args
     #unrolling thetas
     theta1, theta2, = unroll(rolledTheta, np.shape(X)[1], k, np.shape(Y)[1])
     # calculating the sums
@@ -184,9 +191,17 @@ def findGradients(rolledTheta, *args):
     #computing gradients from the deltas
     m = np.shape(X)[0] #total examples of training data
     grad_1 = np.matmul(X.T, delta2)/m #901 x 31
+    grad_1 = grad_1[:, 1:] #901, 30
     grad_2 = np.matmul(x2.T, delta3)/m # 31 X 10
+    if(Reg != None):
+        regTheta1 = theta1[:, 1:]
+        regTheta1 = np.hstack((np.zeros((np.shape(regTheta1)[0], 1)), regTheta1))
+        regTheta2 = theta2[:, 1:]
+        regTheta2 = np.hstack((np.zeros((np.shape(regTheta2)[0], 1)), regTheta2))
+        grad_1 += Reg/m * regTheta1
+        grad_2 += Reg/m * regTheta2
 
-    return roll(grad_1[:, 1:], grad_2).flatten()
+    return roll(grad_1, grad_2).flatten()
 
 #method of calculating cost function
 def crossEntropy(H, Y):
@@ -245,22 +260,24 @@ def main():
     os.chdir("/Users/64000340/Desktop/Train") #directory for folder for processing images
 
     X, Y = processImages(n,numberOfClasses,targetDirectory, subDirectory) #gives us our inputs & answers matricies
+    print("Processed Training Data")
     m = np.shape(X)[0] #number of training examples
     n = np.shape(X)[1] #number of features
     k = 30 #number of neurons in hidden layer
     theta1 = np.random.randn(n, k)  * np.sqrt(1/(k)) #901 x k
     theta2 = np.random.randn(k + 1, numberOfClasses) * np.sqrt(1/(numberOfClasses))  #k+1 x 10
-    #checking gradients
+    #rolling theta
     rolledTheta = roll(theta1, theta2)
-    bestTheta = trainFMINCG(rolledTheta, X, Y, k)
+    #getting the optimal theta
+    bestTheta = trainFMINCG(rolledTheta, X, Y, k, 0)
     b1, b2 = unroll(bestTheta, np.shape(X)[1], k, np.shape(Y)[1])
     a3 = feedForward(X, b1, b2, Y)
     counter = 0
     for i in range(np.shape(a3)[0]):
-        print("Predicted", maxIndex(a3[i].tolist()), "Actual", maxIndex(Y[i].tolist()))
         if(maxIndex(a3[i].tolist()) == maxIndex(Y[i].tolist())):
             counter+= 1
-    print("Accuracy :", (counter/np.shape(X)[0]) * 100)
+
+    print("Training Accuracy :", (counter/np.shape(X)[0]) * 100)
     os.chdir("/Users/64000340/PycharmProjects/MachineLearning")
     with open("NNWeights.txt", "w") as f:
         np.savetxt(f, bestTheta)
@@ -283,20 +300,26 @@ def predict(bestTheta):
     n = np.shape(X_CV)[1]  # number of features
     k = 30  # number of neurons in hidden layer
     os.chdir("/Users/64000340/PycharmProjects/MachineLearning")
-    with open("NNWeights.txt", "r") as f:
+    """
+     with open("NNWeights.txt", "r") as f:
         weights = []
         for i in range(0, (n*k) + (k+1) * numberOfClasses):
             weights.append((f.readline(i).strip()))
+    """
     weights = bestTheta
-    theta1, theta2 = unroll(np.array(weights), np.shape(X_CV)[1], k, np.shape(Y_CV)[1])
-
+    theta1, theta2 = unroll(np.array(weights), np.shape(X_CV)[1], k, np.shape(Y_CV)[1]) #
+    #getting cross validation predictions
     predictions = feedForward(X_CV, theta1, theta2, Y_CV)
     counter = 0
+    hit_rate = [0] * 10
     for i in range(np.shape(predictions)[0]):
-        print("Predicted", maxIndex(predictions[i].tolist()), "Actual", maxIndex(Y_CV[i].tolist()))
         if(maxIndex(predictions[i].tolist()) == maxIndex(Y_CV[i].tolist())):
+            hit_rate[maxIndex(Y_CV[i].tolist())] += 1
             counter+= 1
-    print("Accuracy:", counter/np.shape(X_CV)[0] * 100)
+    print("Accuracy:", format(counter/np.shape(X_CV)[0] * 100, "0.2f"))
+    print("Hit Rate for each Digit")
+    for d in range(0, len(hit_rate)):
+        print(d, ":", hit_rate[d] * 100/157, "%" )
 
 
 
@@ -331,7 +354,7 @@ def trainManually(X, theta1, theta2, Y, iterations, alpha, Reg = None):
 #used to train the network with the fmincg
 
 def trainFMINCG(rolledTheta, X , Y, k,  Reg = None):
-    res = optimize.fmin_cg(f=costFunction, x0=rolledTheta.flatten(), fprime=findGradients, args=(X, Y, k))
+    res = optimize.fmin_cg(f=costFunction, x0=rolledTheta.flatten(), fprime=findGradients, args=(X, Y, k, Reg), maxiter=3200)
     return res
 
 
