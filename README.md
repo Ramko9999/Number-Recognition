@@ -6,3 +6,5 @@ I would like to thank Kensata(he has a github) for providing free training data.
 In the near future, I will experiment with different layerd neural nets as well as different activation functions & so forth to get a sense of what works.
 
 As of 4/19/2019, I changed the number of hidden units from 30 units to 100 just to see what it would do. My testing accuracy went up to 83%. That shit is crazy man!
+
+As of 4/20/2019, I changed the number of hidden from 100 to 300, and it go to 86% accuracy on a different randomized testing dataset. I fed the model 10 of my own digits, it was able to get 3 of them correct. I think I might need to right the digits bit boldy due to the training data.
