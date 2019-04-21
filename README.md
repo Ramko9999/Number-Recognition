@@ -7,4 +7,4 @@ In the near future, I will experiment with different layerd neural nets as well 
 
 As of 4/19/2019, I changed the number of hidden units from 30 units to 100 just to see what it would do. My testing accuracy went up to 83%. That shit is crazy man!
 
-As of 4/20/2019, I changed the number of hidden from 100 to 300, and it go to 86% accuracy on a different randomized testing dataset. I fed the model 10 of my own digits, it was able to get 3 of them correct. I think I might need to right the digits bit boldy due to the training data.
+As of 4/20/2019, I changed the number of hidden from 100 to 300, and it go to 86% accuracy on a different randomized testing dataset. I fed the model 10 of my own digits, it was able to get 3 of them correct. I think I might need to write the digits a bit bolder due to the number boldness in the training & tesing data.
